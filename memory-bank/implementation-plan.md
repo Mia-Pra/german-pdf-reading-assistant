@@ -176,6 +176,8 @@ Validation:
 
 ## Step 19: Add Supabase Authentication And Durable Multi-User Storage
 
+Removed by user request in Step 24.
+
 Add email/password authentication through Supabase. Require authenticated API
 requests, store each user's PDF in Supabase Storage, and store current document
 metadata, translation cache, and vocabulary in Supabase PostgreSQL tables with
@@ -192,6 +194,8 @@ Validation:
 
 ## Step 20: Switch To Automatic Anonymous Authentication
 
+Removed by user request in Step 24.
+
 Replace the email/password account screen with automatic Supabase anonymous
 sign-in. Persist the anonymous session in the browser and continue using the
 authenticated user id for database and Storage isolation.
@@ -206,6 +210,8 @@ Validation:
 
 ## Step 21: Make PDF Storage Object Names Unicode-Safe
 
+Removed with the Supabase Storage implementation in Step 24.
+
 Store uploaded PDFs under an ASCII-only UUID object name while preserving the
 original client filename in document metadata for display.
 
@@ -217,6 +223,9 @@ Validation:
 - The upload response still returns the original filename for display.
 
 ## Step 22: Reduce PDF Upload Latency
+
+The Supabase-specific concurrent upload implementation was removed in Step 24.
+The compact page-text representation remains compatible with local storage.
 
 Run local PDF text extraction and the private Supabase Storage upload
 concurrently. Persist only the page text required by AI features, and return
@@ -230,3 +239,36 @@ Validation:
 - Upload and current-document responses omit internal parsed page content.
 - Failed parsing removes any Storage object uploaded by the concurrent task.
 - Backend syntax and frontend production build succeed.
+
+## Step 23: Preserve Reader State During Page Navigation
+
+Keep the Reader page mounted while navigating to the vocabulary notebook so the
+browser PDF iframe and Reader interaction state are not destroyed and recreated.
+Keep the inactive Reader rendered in an overlapping route layer; do not use
+`display: none` or the HTML `hidden` attribute because the browser PDF plugin may
+discard its internal viewer state when removed from rendering.
+
+Validation:
+
+- Navigating from Reader to Vocabulary and back does not request the current
+  document again.
+- The PDF iframe remains mounted and preserves its current viewer state.
+- The inactive Reader keeps non-zero layout dimensions and is not
+  `display: none`.
+- The frontend production build succeeds.
+
+## Step 24: Restore Shared Local-File Deployment
+
+Remove Supabase authentication, per-user PostgreSQL persistence, and private
+Storage integration. Restore unauthenticated frontend API calls and backend
+local-file persistence while retaining the deployed Render links and Reader
+state preservation.
+
+Validation:
+
+- No Supabase dependency, configuration, authentication, database, or Storage
+  code remains in the application.
+- Document, translation cache, and vocabulary endpoints work without an
+  Authorization header.
+- Backend syntax and representative local-file API flows pass.
+- Frontend production build succeeds.

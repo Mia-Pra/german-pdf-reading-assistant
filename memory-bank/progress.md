@@ -1,5 +1,54 @@
 # Progress
 
+## 2026-06-20
+
+- Completed Step 24: restored the shared local-file deployment requested by the
+  user.
+- Removed Supabase authentication, anonymous sessions, bearer-token API calls,
+  PostgreSQL persistence, private Storage integration, migration SQL, and
+  Supabase environment variables.
+- Restored uploaded PDFs, current document metadata, full-translation cache,
+  and vocabulary to the configured backend storage directory.
+- Preserved the active Render frontend/backend links and the Step 23 Reader
+  state-preservation behavior.
+- Updated README and memory-bank documentation to state that all visitors share
+  the current PDF and vocabulary and that API keys remain hosting-platform
+  environment variables.
+- Validated backend syntax with `python -m compileall app`.
+- Validated health, current-document, vocabulary list, empty sentence
+  validation, and DOCX export through FastAPI TestClient without authentication.
+- Validated the frontend production build with `npm.cmd run build`.
+- Confirmed no Supabase application/configuration references remain in frontend
+  source, dependency manifests, backend application code, environment examples,
+  Render configuration, or README.
+
+- Completed Step 23: preserved Reader state during navigation to and from the
+  vocabulary notebook.
+- Identified the reload cause: React Router unmounted `ReaderPage` on
+  `/vocabulary`, destroying the browser PDF iframe and triggering current
+  document loading again when returning to `/`.
+- Added a persistent workspace route shell that keeps `ReaderPage` mounted and
+  changes only its visibility while the vocabulary route is active.
+- Preserved PDF viewer state, Reader mode, assistant input, assistant results,
+  and other Reader-local state across page navigation.
+- Validated the frontend production build with `npm.cmd run build`.
+- Validated in the browser that the iframe remains in the DOM while Vocabulary
+  is visible, its source URL is unchanged after returning, and typed Reader
+  input remains intact.
+- Rechecked Step 23 after the reload still occurred with the first fix.
+- Found that the first implementation used the HTML `hidden` attribute, which
+  applies `display: none`; keeping the iframe DOM node was insufficient because
+  the browser PDF plugin could still discard its rendering context.
+- Replaced `hidden` with overlapping route layers. The inactive Reader now uses
+  opacity and disabled pointer events while remaining fully laid out and
+  rendered.
+- Validated during Vocabulary navigation that the Reader remains `display:
+  block` at 1217 x 704 pixels and the PDF iframe remains `display: block` at
+  approximately 789 x 520 pixels.
+- Validated after returning that the iframe URL, dimensions, and Reader input
+  state remain unchanged.
+- Revalidated the frontend production build with `npm.cmd run build`.
+
 ## 2026-06-14
 
 - Bootstrapped the document-first workflow for a German PDF reading assistant.

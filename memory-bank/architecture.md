@@ -43,25 +43,16 @@ CORS origins, and backend storage directory are environment-configurable.
 `render.yaml` defines the free FastAPI service and ephemeral runtime storage, while
 `frontend/vercel.json` provides SPA route fallback for Vercel.
 
-Step 19 is implemented. Supabase authentication gates the app.
-PDFs are stored in a private Supabase Storage bucket, while parsed current
-documents, translation caches, and vocabulary are stored per user in PostgreSQL.
-The SQL migration enables row-level security.
+The Supabase authentication and multi-user persistence work formerly described
+by Steps 19-22 has been removed. The app again uses shared local files under the
+configured backend storage directory, matching the original production demo.
+Step 24 completed this restoration and removed all Supabase application
+dependencies and environment settings.
 
-Step 20 is implemented. The frontend automatically restores or creates a
-Supabase anonymous session and no longer displays registration, sign-in, or
-sign-out controls.
-
-Step 21 is complete. The PDF upload path now uses an ASCII-only UUID object name
-under each user's private Storage folder. The original filename remains in
-document metadata for display, so filenames containing Chinese characters,
-spaces, or other Unicode characters do not produce invalid Supabase Storage
-keys.
-
-Step 22 is complete. PDF extraction and private Storage upload run concurrently.
-Parsed documents retain only page text required by AI features, upload responses
-return compact metadata, and Supabase HTTP connections are reused across
-authentication, Storage, and database requests.
+Step 23 is complete. The Reader page remains mounted and rendered while the
+vocabulary route is visible. The two pages use overlapping route layers, with
+opacity and pointer-event switching instead of `hidden`/`display: none`, so the
+browser PDF plugin retains its layout and internal viewer context.
 
 The active production demo uses two Render services:
 
@@ -84,10 +75,6 @@ Render has a `/*` to `/index.html` rewrite for React routes. The backend
 - `backend/.env.example`: template for AI provider configuration.
 - `backend/app/config.py`: environment-backed settings object and AI configuration validation.
 - `backend/app/storage.py`: storage paths and directory initialization.
-- `backend/app/auth.py`: verifies Supabase access tokens and returns the authenticated user.
-- `backend/app/http_client.py`: shared keep-alive HTTP client for Supabase requests.
-- `backend/app/supabase_store.py`: service-role access to Supabase REST and Storage APIs.
-- `backend/supabase/migration.sql`: database tables, indexes, storage bucket, and RLS policies.
 - `backend/app/pdf_parser.py`: PyMuPDF text extraction and paragraph splitting.
 - `backend/app/documents.py`: document upload API and current parsed document persistence.
 - `backend/app/ai_client.py`: OpenAI-compatible chat completions client and AI-specific exceptions.
@@ -109,9 +96,10 @@ Implemented now:
 - PDF file input wired to `POST /api/documents/upload`.
 - Upload state handling for idle, uploading, ready, and error states.
 - PDF iframe preview using the backend `pdf_url` returned after upload.
-- Automatic anonymous sign-in and persisted browser session.
-- Bearer access token attached to every application API request.
 - Reader page automatically loads the current backend document on page open when one exists.
+- Reader page remains mounted with non-zero rendered dimensions during
+  Reader/Vocabulary navigation so the browser PDF plugin does not reload when
+  returning from the vocabulary notebook.
 - Reader toolbar can switch between original PDF preview and full-document translation comparison.
 - Assistant panel shell with fixed action buttons for summary, full translation, sentence translation, and word translation.
 - Assistant text input wired to `POST /api/ai/ask`.
@@ -142,10 +130,9 @@ Implemented now:
 - Environment-backed settings loader for `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `OPENAI_MODEL`.
 - Environment-backed production settings for `CORS_ORIGINS` and `STORAGE_DIR`.
 - Explicit AI config validation helper for future AI endpoints.
-- Supabase configuration for project URL, anon key, service-role key, and private PDF bucket.
-- `POST /api/documents/upload` for authenticated PDF parsing, private Storage upload, and per-user document persistence.
+- `POST /api/documents/upload` for local PDF persistence and parsing.
 - `GET /api/documents/current` for current parsed metadata and `pdf_url`.
-- Signed private Storage URLs for iframe PDF preview.
+- `GET /api/documents/current/pdf` for safe inline PDF preview.
 - Validation for non-PDF uploads, empty uploads, invalid PDFs, and no-text PDFs.
 - Safe current-PDF lookup that prevents arbitrary path serving and reports missing metadata/files clearly.
 - OpenAI-compatible `/chat/completions` client using backend `.env` values.
@@ -155,11 +142,11 @@ Implemented now:
 - `POST /api/ai/summary` for current document loading, context chunking, summary prompting, and source page return.
 - `POST /api/ai/translate/sentence` for manual or selected German sentence translation to Chinese.
 - `POST /api/ai/translate/word` for manual or selected German word analysis with lemma, part of speech, plural, translation, and example sentence.
-- `POST /api/ai/translate/full` for page-aligned full-document Chinese translation, cached per authenticated user.
-- `GET /api/vocabulary` for listing only the authenticated user's saved vocabulary.
+- `POST /api/ai/translate/full` for page-aligned full-document Chinese translation with local cache reuse.
+- `GET /api/vocabulary` for listing the shared saved vocabulary.
 - `POST /api/vocabulary` for validating and adding vocabulary items, returning an existing item when the same lemma and part of speech already exist.
 - `DELETE /api/vocabulary/{id}` for deleting one saved vocabulary item by id.
-- `GET /api/vocabulary/export` for generating the authenticated user's `.docx` vocabulary notebook.
+- `GET /api/vocabulary/export` for generating the shared `.docx` vocabulary notebook.
 
 Planned next:
 

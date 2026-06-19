@@ -17,10 +17,6 @@ class Settings:
     openai_model: str
     storage_dir: Path
     cors_origins: tuple[str, ...]
-    supabase_url: str
-    supabase_anon_key: str
-    supabase_service_role_key: str
-    supabase_storage_bucket: str
 
     @property
     def has_ai_config(self) -> bool:
@@ -41,16 +37,6 @@ class Settings:
                 f"Missing: {', '.join(missing)}."
             )
 
-    @property
-    def has_supabase_config(self) -> bool:
-        return bool(
-            self.supabase_url
-            and self.supabase_anon_key
-            and self.supabase_service_role_key
-            and self.supabase_storage_bucket
-        )
-
-
 def get_settings() -> Settings:
     load_dotenv(ENV_FILE)
     storage_dir = Path(os.getenv("STORAGE_DIR", str(STORAGE_DIR))).expanduser()
@@ -70,8 +56,4 @@ def get_settings() -> Settings:
         openai_model=os.getenv("OPENAI_MODEL", "").strip(),
         storage_dir=storage_dir,
         cors_origins=cors_origins,
-        supabase_url=os.getenv("SUPABASE_URL", "").strip().rstrip("/"),
-        supabase_anon_key=os.getenv("SUPABASE_ANON_KEY", "").strip(),
-        supabase_service_role_key=os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip(),
-        supabase_storage_bucket=os.getenv("SUPABASE_STORAGE_BUCKET", "pdfs").strip(),
     )
