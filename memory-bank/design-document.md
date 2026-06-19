@@ -13,10 +13,7 @@ The app focuses on a complete demo loop: upload PDF, preview original PDF, parse
 
 - No OCR for scanned PDFs.
 - No mind map feature.
-- No user login.
-- No production database.
-- No cloud sync.
-- No multi-user permission model.
+- No social-login providers; email/password authentication is used.
 - No requirement to perfectly reproduce PDF layout in parsed text; the original PDF preview handles visual reading.
 
 ## Page Structure
@@ -62,6 +59,7 @@ Acceptance:
 - The original PDF can be previewed.
 - Backend parsed text is available for AI features.
 - If the PDF has no extractable text, the app clearly says OCR is not supported.
+- The PDF belongs only to the authenticated user and remains available after backend restarts.
 
 ### Ask About The Document
 
@@ -125,6 +123,7 @@ User saves word translation results into the vocabulary notebook. Backend persis
 Acceptance:
 
 - Saved vocabulary survives page refresh and app navigation.
+- Saved vocabulary is isolated by authenticated Supabase user id.
 - Duplicate words are not added repeatedly.
 - Export button downloads a valid Word file.
 - Word file contains lemma, POS, plural, translation, and example sentence.
@@ -187,14 +186,15 @@ Only lemma, part of speech, plural, translation, and example sentence are requir
 
 ## Persistence
 
-Backend local files:
+Supabase persistence:
 
-- `storage/uploads/`: uploaded PDFs.
-- `storage/documents/current.json`: parsed current document.
-- `storage/translations/current_full_translation.json`: cached full translation.
-- `storage/vocabulary.json`: saved vocabulary.
+- Private `pdfs` Storage bucket: uploaded PDFs under `{user_id}/`.
+- `current_documents`: current parsed document and PDF object path per user.
+- `full_translations`: cached translation per user and current document id.
+- `vocabulary`: saved vocabulary rows per user.
 
-This is intentionally simple for a demo and avoids database setup.
+Supabase Auth provides email/password accounts. PostgreSQL row-level security and
+backend user-id filtering prevent one account from accessing another account's data.
 
 ## AI Configuration
 
@@ -212,6 +212,7 @@ The frontend never displays or submits API keys.
 - PDF has no extractable text: return OCR-not-supported message.
 - API config missing: backend returns setup error.
 - LLM failure: frontend shows error and keeps current document/vocabulary state.
+- Missing or expired login: backend returns 401 and the user signs in again.
 - User enters empty word or sentence: validation error.
 - Duplicate vocabulary: backend returns existing item or duplicate warning.
 - Long PDF: backend chunks text before summary or full translation.
@@ -227,6 +228,6 @@ The frontend never displays or submits API keys.
 - Sentence translation works through manual input and selected text input.
 - Word translation returns lemma, POS, plural, Chinese translation, and example sentence.
 - User can add word translation output to vocabulary.
-- Vocabulary persists in backend local file storage.
+- Vocabulary persists in Supabase PostgreSQL and is isolated per account.
 - Page 2 lists vocabulary and downloads a valid Word file.
 - Full-document translation is shown in original/translation comparison mode.

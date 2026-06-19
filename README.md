@@ -33,9 +33,15 @@ Configure `backend/.env` before using AI actions:
 OPENAI_API_KEY=your-api-key
 OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 OPENAI_MODEL=qwen-plus
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_STORAGE_BUCKET=pdfs
 ```
 
-The backend can start without real AI credentials. Upload, preview, vocabulary list, delete, and Word export still work. AI endpoints return a clear setup error until the three `.env` values are configured.
+The backend starts without Supabase values, but authenticated application APIs
+return a clear configuration error until they are set. Never put the service-role
+key in the frontend.
 
 ## Frontend Setup
 
@@ -47,11 +53,19 @@ npm run dev
 
 Open `http://127.0.0.1:5173`.
 
+Create `frontend/.env`:
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
 If you add or change backend endpoints while the server is already running, restart the backend process so the new routes are loaded.
 
 ## Demo Flow
 
-1. Start the backend and frontend.
+1. Create an account or sign in.
 2. Open the Reader page.
 3. Upload a text-based German PDF.
 4. Use the assistant actions:
@@ -79,21 +93,28 @@ If you add or change backend endpoints while the server is already running, rest
 - `DELETE /api/vocabulary/{id}`: delete one vocabulary item.
 - `GET /api/vocabulary/export`: download the vocabulary notebook as Word.
 
-## Local Storage
+## Supabase Setup
 
-Runtime files are stored under `backend/storage/`:
+1. Create a free Supabase project.
+2. Open SQL Editor and run [`backend/supabase/migration.sql`](backend/supabase/migration.sql).
+3. In Project Settings > API, copy the project URL, anon key, and service-role key.
+4. Configure the backend and frontend variables shown above.
 
-- `uploads/`: uploaded PDFs.
-- `documents/current.json`: parsed current document metadata and page text.
-- `translations/current_full_translation.json`: cached full-document translation for the current document id.
-- `vocabulary.json`: saved vocabulary items.
+Supabase stores:
+
+- Private PDFs in the `pdfs` Storage bucket.
+- One current parsed document per account.
+- One full-translation cache per account.
+- Vocabulary rows owned by each account.
+
+The migration enables row-level security. The FastAPI backend also derives every
+query from the verified Supabase user id, so users cannot read or modify another
+account's data.
 
 ## Limitations
 
 - No OCR. Scanned PDFs without extractable text return an OCR-not-supported error.
-- No login or user accounts.
-- No database; all persistence is local JSON/files.
-- No cloud sync or multi-user permissions.
+- Supabase free-tier quotas apply.
 - Parsed text does not preserve exact PDF layout. The original PDF iframe is used for visual reading.
 
 ## Production Deployment
@@ -110,18 +131,22 @@ OPENAI_API_KEY=your-api-key
 OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 OPENAI_MODEL=qwen-plus
 CORS_ORIGINS=https://your-frontend.vercel.app
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_STORAGE_BUCKET=pdfs
 ```
 
 Set this frontend environment variable in Vercel:
 
 ```env
 VITE_API_BASE_URL=https://your-backend.onrender.com
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-The Render Blueprint uses the free instance type and stores runtime data under
-`/tmp`. Uploaded PDFs, translation cache, and vocabulary data can be lost when
-the free service restarts or sleeps. This demo also has no user accounts, so all
-active visitors share the same stored document and vocabulary.
+The Render backend can remain on the free instance type because durable data is
+stored in Supabase rather than Render's `/tmp` filesystem.
 
 Current deployment:
 
