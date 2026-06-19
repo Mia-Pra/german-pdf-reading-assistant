@@ -52,6 +52,17 @@ Step 20 is implemented. The frontend automatically restores or creates a
 Supabase anonymous session and no longer displays registration, sign-in, or
 sign-out controls.
 
+Step 21 is complete. The PDF upload path now uses an ASCII-only UUID object name
+under each user's private Storage folder. The original filename remains in
+document metadata for display, so filenames containing Chinese characters,
+spaces, or other Unicode characters do not produce invalid Supabase Storage
+keys.
+
+Step 22 is complete. PDF extraction and private Storage upload run concurrently.
+Parsed documents retain only page text required by AI features, upload responses
+return compact metadata, and Supabase HTTP connections are reused across
+authentication, Storage, and database requests.
+
 The active production demo uses two Render services:
 
 - Static frontend: `https://german-pdf-reading-assistant-web.onrender.com`
@@ -74,6 +85,7 @@ Render has a `/*` to `/index.html` rewrite for React routes. The backend
 - `backend/app/config.py`: environment-backed settings object and AI configuration validation.
 - `backend/app/storage.py`: storage paths and directory initialization.
 - `backend/app/auth.py`: verifies Supabase access tokens and returns the authenticated user.
+- `backend/app/http_client.py`: shared keep-alive HTTP client for Supabase requests.
 - `backend/app/supabase_store.py`: service-role access to Supabase REST and Storage APIs.
 - `backend/supabase/migration.sql`: database tables, indexes, storage bucket, and RLS policies.
 - `backend/app/pdf_parser.py`: PyMuPDF text extraction and paragraph splitting.

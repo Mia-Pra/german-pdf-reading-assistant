@@ -5,6 +5,7 @@ import httpx
 from fastapi import HTTPException, status
 
 from app.config import get_settings
+from app.http_client import get_http_client
 
 
 def _settings():
@@ -42,7 +43,7 @@ def _request(
     if headers:
         request_headers.update(headers)
     try:
-        response = httpx.request(
+        response = get_http_client().request(
             method,
             f"{settings.supabase_url}{path}",
             params=params,
@@ -117,6 +118,16 @@ def upload_pdf(user_id: str, object_name: str, contents: bytes) -> str:
         },
     )
     return storage_path
+
+
+def delete_pdf(storage_path: str) -> None:
+    settings = _settings()
+    _request(
+        "DELETE",
+        f"/storage/v1/object/{settings.supabase_storage_bucket}",
+        json={"prefixes": [storage_path]},
+        headers={"Content-Type": "application/json"},
+    )
 
 
 def create_pdf_signed_url(storage_path: str, expires_in: int = 3600) -> str:

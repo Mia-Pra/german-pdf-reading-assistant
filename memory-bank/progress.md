@@ -147,6 +147,33 @@
 
 ## 2026-06-19
 
+- Completed Step 22: reduced PDF upload latency.
+- Changed PDF parsing and Supabase Storage upload from sequential execution to
+  concurrent worker tasks.
+- Removed duplicated paragraph copies from parsed page persistence because all
+  AI features consume page text directly.
+- Reduced upload and current-document responses to preview metadata instead of
+  returning the full internal parsed document.
+- Added cleanup of concurrently uploaded Storage objects when parsing fails or
+  the PDF has no extractable text.
+- Added a shared keep-alive HTTP client for Supabase Auth, Storage, and database
+  requests.
+- Validated equal 0.35-second parsing and upload tasks complete in 0.37 seconds,
+  instead of approximately 0.70 seconds sequentially.
+- Validated backend syntax and the frontend production build.
+- Fixed Supabase PDF uploads failing with `Invalid key` for filenames containing
+  Chinese characters, spaces, or other Unicode characters.
+- Changed private Storage object names to ASCII-only UUID filenames while
+  preserving the original basename in document metadata and the frontend.
+- Hardened upload filename handling for missing or path-like client filenames.
+- Completed Step 21: made PDF Storage object names Unicode-safe.
+- Validated backend syntax with `python -m compileall app`.
+- Validated an actual text-based PDF named
+  `edf30be1a83049d0ae58d066f346d943_德语阅读 康德与启蒙.pdf` through the upload
+  handler with mocked Supabase I/O.
+- Confirmed the generated object path uses
+  `{user_id}/{32-character-lowercase-hex}.pdf` and the response preserves the
+  original display filename.
 - Completed Step 18: added production deployment support for Render and Vercel.
 - Replaced the frontend's fixed localhost API URL with `VITE_API_BASE_URL` while preserving the local default.
 - Added configurable backend `CORS_ORIGINS` and `STORAGE_DIR` settings while preserving local defaults.

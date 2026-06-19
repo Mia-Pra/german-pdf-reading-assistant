@@ -4,6 +4,7 @@ import httpx
 from fastapi import Header, HTTPException, status
 
 from app.config import get_settings
+from app.http_client import get_http_client
 
 
 @dataclass(frozen=True)
@@ -33,7 +34,7 @@ def get_authenticated_user(
 
     token = authorization.split(" ", 1)[1].strip()
     try:
-        response = httpx.get(
+        response = get_http_client().get(
             f"{settings.supabase_url}/auth/v1/user",
             headers={
                 "apikey": settings.supabase_anon_key,
