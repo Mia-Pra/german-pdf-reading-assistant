@@ -194,5 +194,12 @@
 - Validated missing configuration returns 503, missing or invalid auth returns
   401, and two simulated authenticated users cannot list or delete each other's
   vocabulary.
+- Completed Step 21: changed private PDF Storage object names to generated
+  ASCII-only UUID filenames.
+- Preserved the original uploaded filename in current-document metadata and UI
+  responses.
+- Validated that a Chinese PDF filename with spaces produces a key matching
+  `{32-character hex UUID}.pdf` with no non-ASCII characters.
+- Validated backend syntax with `python -m compileall app`.
 - Validated the public homepage, direct `/vocabulary` route, vocabulary API,
   CORS response, and a live sentence translation of `Guten Tag` to `您好`.

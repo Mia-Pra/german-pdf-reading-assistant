@@ -52,6 +52,11 @@ Step 20 is implemented. The frontend automatically restores or creates a
 Supabase anonymous session and no longer displays registration, sign-in, or
 sign-out controls.
 
+Step 21 is implemented. Supabase Storage PDF object names are generated as
+ASCII-only UUID filenames, while the original user filename remains in document
+metadata for display. This supports filenames containing Chinese characters,
+spaces, or punctuation.
+
 The active production demo uses two Render services:
 
 - Static frontend: `https://german-pdf-reading-assistant-web.onrender.com`
