@@ -40,7 +40,7 @@ Synonym functionality from Steps 18 and 19 has been removed by user request. The
 
 Production deployment support is complete. The frontend API base URL, backend
 CORS origins, and backend storage directory are environment-configurable.
-`render.yaml` defines the FastAPI service and persistent disk, while
+`render.yaml` defines the free FastAPI service and ephemeral runtime storage, while
 `frontend/vercel.json` provides SPA route fallback for Vercel.
 
 ## Planned Top-Level Structure
@@ -49,7 +49,7 @@ CORS origins, and backend storage directory are environment-configurable.
 - `backend/`: FastAPI backend API.
 - `README.md`: local development instructions.
 - `.gitignore`: ignores generated frontend builds, dependencies, Python caches, virtual environments, and environment files.
-- `render.yaml`: Render Blueprint for the FastAPI backend and persistent storage disk.
+- `render.yaml`: Render Blueprint for the free FastAPI backend with ephemeral storage.
 - `frontend/vercel.json`: Vercel SPA rewrite configuration.
 - `frontend/.env.example`: frontend backend-URL configuration template.
 - `backend/storage/`: local runtime storage for uploaded PDFs, parsed document JSON, cached translations, and vocabulary JSON.

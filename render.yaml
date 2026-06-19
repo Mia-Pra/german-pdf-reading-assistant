@@ -6,6 +6,7 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
+    plan: free
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.11
@@ -18,8 +19,4 @@ services:
       - key: CORS_ORIGINS
         sync: false
       - key: STORAGE_DIR
-        value: /var/data
-    disk:
-      name: app-data
-      mountPath: /var/data
-      sizeGB: 1
+        value: /tmp/german-pdf-reading-assistant

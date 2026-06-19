@@ -155,3 +155,7 @@
 - Documented production environment variables and the demo's shared-data limitation.
 - Validated the frontend production build with a configured remote API URL.
 - Validated the backend health endpoint returns 200 with configured production CORS and a temporary storage directory.
+- Adjusted the Render Blueprint to use the free instance type without a persistent
+  disk after Render identified disks as a paid resource requiring payment details.
+- Production runtime data now uses `/tmp` and may be lost when the free service
+  restarts or sleeps; this tradeoff is documented in the README and architecture.

@@ -118,6 +118,7 @@ Set this frontend environment variable in Vercel:
 VITE_API_BASE_URL=https://your-backend.onrender.com
 ```
 
-The Render Blueprint mounts a persistent disk at `/var/data` so uploaded PDFs,
-translation cache, and vocabulary data survive service restarts. This demo has
-no user accounts, so all visitors share the same stored document and vocabulary.
+The Render Blueprint uses the free instance type and stores runtime data under
+`/tmp`. Uploaded PDFs, translation cache, and vocabulary data can be lost when
+the free service restarts or sleeps. This demo also has no user accounts, so all
+active visitors share the same stored document and vocabulary.
