@@ -170,6 +170,15 @@
   `https://german-pdf-reading-assistant-web.onrender.com`.
 - Added the production frontend to backend CORS and configured a Render SPA
   rewrite from `/*` to `/index.html`.
+- Completed Step 20: switched Supabase authentication to automatic anonymous sign-in.
+- Removed the email/password registration, sign-in, and sign-out UI.
+- Added session restoration followed by `signInAnonymously()` when no session exists.
+- Preserved backend token verification, per-user PostgreSQL records, private PDF
+  paths, and existing RLS policies because anonymous users use the authenticated role.
+- Enabled anonymous sign-ins in the production Supabase project.
+- Validated a real Supabase anonymous session can be created successfully.
+- Validated the frontend production build with `npm.cmd run build`.
+- Validated backend syntax with `python -m compileall app`.
 - Implemented Step 19: Supabase authentication and durable multi-user storage.
 - Added frontend email/password registration, sign-in, persisted sessions, and sign-out.
 - Added authenticated API requests using the Supabase access token.

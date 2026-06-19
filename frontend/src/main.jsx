@@ -36,23 +36,64 @@ function apiFetch(session, path, options = {}) {
 function App() {
   const [session, setSession] = useState(null);
   const [authStatus, setAuthStatus] = useState("loading");
+  const [authError, setAuthError] = useState("");
 
   useEffect(() => {
+    let isActive = true;
     if (!supabase) {
       setAuthStatus("unconfigured");
       return undefined;
     }
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
+
+    async function initializeAnonymousSession() {
+      const { data, error } = await supabase.auth.getSession();
+      if (!isActive) {
+        return;
+      }
+      if (error) {
+        setAuthError(error.message);
+        setAuthStatus("error");
+        return;
+      }
+      if (data.session) {
+        setSession(data.session);
+        setAuthStatus("ready");
+        return;
+      }
+
+      const anonymousResult = await supabase.auth.signInAnonymously();
+      if (!isActive) {
+        return;
+      }
+      if (anonymousResult.error || !anonymousResult.data.session) {
+        setAuthError(
+          anonymousResult.error?.message ||
+            "Anonymous session could not be created.",
+        );
+        setAuthStatus("error");
+        return;
+      }
+      setSession(anonymousResult.data.session);
       setAuthStatus("ready");
-    });
+    }
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!isActive) {
+        return;
+      }
       setSession(nextSession);
-      setAuthStatus("ready");
+      if (nextSession) {
+        setAuthStatus("ready");
+      }
     });
-    return () => subscription.unsubscribe();
+    initializeAnonymousSession();
+
+    return () => {
+      isActive = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   if (authStatus === "loading") {
@@ -66,8 +107,18 @@ function App() {
       </div>
     );
   }
-  if (!session) {
-    return <AuthPage />;
+  if (authStatus === "error" || !session) {
+    return (
+      <div className="auth-shell">
+        <div className="auth-card">
+          <h1>Session unavailable</h1>
+          <p className="assistant-error">{authError}</p>
+          <button type="button" onClick={() => window.location.reload()}>
+            Try again
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -87,13 +138,6 @@ function App() {
               <LibraryBig size={18} />
               Vocabulary
             </NavLink>
-            <button
-              type="button"
-              className="sign-out-button"
-              onClick={() => supabase.auth.signOut()}
-            >
-              Sign out
-            </button>
           </nav>
         </header>
 
@@ -108,91 +152,6 @@ function App() {
         </main>
       </div>
     </BrowserRouter>
-  );
-}
-
-function AuthPage() {
-  const [mode, setMode] = useState("signin");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [status, setStatus] = useState("idle");
-  const [message, setMessage] = useState("");
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-    setStatus("submitting");
-    setMessage("");
-    const credentials = { email: email.trim(), password };
-    const result =
-      mode === "signup"
-        ? await supabase.auth.signUp(credentials)
-        : await supabase.auth.signInWithPassword(credentials);
-    if (result.error) {
-      setStatus("error");
-      setMessage(result.error.message);
-      return;
-    }
-    setStatus("ready");
-    if (mode === "signup" && !result.data.session) {
-      setMessage("Check your email to confirm the account, then sign in.");
-    }
-  }
-
-  return (
-    <main className="auth-shell">
-      <form className="auth-card" onSubmit={handleSubmit}>
-        <p className="eyebrow">German PDF Assistant</p>
-        <h1>{mode === "signup" ? "Create account" : "Sign in"}</h1>
-        <p>Your PDFs and vocabulary will be saved to your account.</p>
-        <label>
-          Email
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            required
-            minLength="6"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </label>
-        <button
-          type="submit"
-          className="primary-action"
-          disabled={status === "submitting"}
-        >
-          {status === "submitting"
-            ? "Please wait..."
-            : mode === "signup"
-              ? "Create account"
-              : "Sign in"}
-        </button>
-        {message ? (
-          <p className={status === "error" ? "assistant-error" : "vocabulary-message"}>
-            {message}
-          </p>
-        ) : null}
-        <button
-          type="button"
-          className="auth-switch"
-          onClick={() => {
-            setMode(mode === "signup" ? "signin" : "signup");
-            setMessage("");
-          }}
-        >
-          {mode === "signup"
-            ? "Already have an account? Sign in"
-            : "Need an account? Register"}
-        </button>
-      </form>
-    </main>
   );
 }
 

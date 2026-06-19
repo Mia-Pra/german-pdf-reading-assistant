@@ -189,3 +189,17 @@ Validation:
 - Database migration defines per-user tables, constraints, and RLS policies.
 - PDF, document metadata, translation cache, and vocabulary operations are scoped
   to the authenticated user.
+
+## Step 20: Switch To Automatic Anonymous Authentication
+
+Replace the email/password account screen with automatic Supabase anonymous
+sign-in. Persist the anonymous session in the browser and continue using the
+authenticated user id for database and Storage isolation.
+
+Validation:
+
+- A browser without a session automatically creates an anonymous Supabase user.
+- A restored session opens the workspace without creating another user.
+- The email/password form and sign-out action are removed.
+- Frontend production build succeeds.
+- Existing backend token verification and per-user RLS remain unchanged.
