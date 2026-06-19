@@ -204,14 +204,29 @@ Validation:
 - Frontend production build succeeds.
 - Existing backend token verification and per-user RLS remain unchanged.
 
-## Step 21: Make Supabase PDF Object Keys Filename-Safe
+## Step 21: Make PDF Storage Object Names Unicode-Safe
 
-Store uploaded PDFs under an ASCII-only generated object name instead of
-including the user-provided filename in the Supabase Storage key. Preserve the
-original filename in document metadata for display.
+Store uploaded PDFs under an ASCII-only UUID object name while preserving the
+original client filename in document metadata for display.
 
 Validation:
 
-- Chinese filenames, spaces, and punctuation do not appear in the Storage key.
-- The original uploaded filename remains available in document metadata.
-- PDF parsing, private upload, and signed preview URL generation continue to work.
+- A valid PDF with Chinese characters and spaces in its filename uploads through
+  the backend flow without placing those characters in the Supabase Storage key.
+- The generated object name matches `<32 lowercase hex characters>.pdf`.
+- The upload response still returns the original filename for display.
+
+## Step 22: Reduce PDF Upload Latency
+
+Run local PDF text extraction and the private Supabase Storage upload
+concurrently. Persist only the page text required by AI features, and return
+compact document metadata to the frontend instead of returning the full parsed
+document after upload.
+
+Validation:
+
+- PDF parsing and Storage upload overlap instead of running sequentially.
+- Parsed page data no longer duplicates page text inside paragraph records.
+- Upload and current-document responses omit internal parsed page content.
+- Failed parsing removes any Storage object uploaded by the concurrent task.
+- Backend syntax and frontend production build succeed.
