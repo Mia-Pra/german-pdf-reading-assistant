@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, NavLink, Route, Routes } from "react-router-dom";
+import { createClient } from "@supabase/supabase-js";
 import {
   BookOpen,
   Download,
@@ -19,8 +20,56 @@ import "./styles.css";
 const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000"
 ).replace(/\/$/, "");
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+const supabase =
+  SUPABASE_URL && SUPABASE_ANON_KEY
+    ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
+
+function apiFetch(session, path, options = {}) {
+  const headers = new Headers(options.headers || {});
+  headers.set("Authorization", `Bearer ${session.access_token}`);
+  return fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+}
 
 function App() {
+  const [session, setSession] = useState(null);
+  const [authStatus, setAuthStatus] = useState("loading");
+
+  useEffect(() => {
+    if (!supabase) {
+      setAuthStatus("unconfigured");
+      return undefined;
+    }
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setAuthStatus("ready");
+    });
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      setAuthStatus("ready");
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (authStatus === "loading") {
+    return <div className="auth-shell">Loading account...</div>;
+  }
+  if (authStatus === "unconfigured") {
+    return (
+      <div className="auth-shell">
+        Supabase is not configured. Set VITE_SUPABASE_URL and
+        VITE_SUPABASE_ANON_KEY.
+      </div>
+    );
+  }
+  if (!session) {
+    return <AuthPage />;
+  }
+
   return (
     <BrowserRouter>
       <div className="app-shell">
@@ -38,13 +87,23 @@ function App() {
               <LibraryBig size={18} />
               Vocabulary
             </NavLink>
+            <button
+              type="button"
+              className="sign-out-button"
+              onClick={() => supabase.auth.signOut()}
+            >
+              Sign out
+            </button>
           </nav>
         </header>
 
         <main>
           <Routes>
-            <Route path="/" element={<ReaderPage />} />
-            <Route path="/vocabulary" element={<VocabularyPage />} />
+            <Route path="/" element={<ReaderPage session={session} />} />
+            <Route
+              path="/vocabulary"
+              element={<VocabularyPage session={session} />}
+            />
           </Routes>
         </main>
       </div>
@@ -52,7 +111,92 @@ function App() {
   );
 }
 
-function ReaderPage() {
+function AuthPage() {
+  const [mode, setMode] = useState("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [status, setStatus] = useState("idle");
+  const [message, setMessage] = useState("");
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setStatus("submitting");
+    setMessage("");
+    const credentials = { email: email.trim(), password };
+    const result =
+      mode === "signup"
+        ? await supabase.auth.signUp(credentials)
+        : await supabase.auth.signInWithPassword(credentials);
+    if (result.error) {
+      setStatus("error");
+      setMessage(result.error.message);
+      return;
+    }
+    setStatus("ready");
+    if (mode === "signup" && !result.data.session) {
+      setMessage("Check your email to confirm the account, then sign in.");
+    }
+  }
+
+  return (
+    <main className="auth-shell">
+      <form className="auth-card" onSubmit={handleSubmit}>
+        <p className="eyebrow">German PDF Assistant</p>
+        <h1>{mode === "signup" ? "Create account" : "Sign in"}</h1>
+        <p>Your PDFs and vocabulary will be saved to your account.</p>
+        <label>
+          Email
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+        </label>
+        <label>
+          Password
+          <input
+            type="password"
+            required
+            minLength="6"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+        </label>
+        <button
+          type="submit"
+          className="primary-action"
+          disabled={status === "submitting"}
+        >
+          {status === "submitting"
+            ? "Please wait..."
+            : mode === "signup"
+              ? "Create account"
+              : "Sign in"}
+        </button>
+        {message ? (
+          <p className={status === "error" ? "assistant-error" : "vocabulary-message"}>
+            {message}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          className="auth-switch"
+          onClick={() => {
+            setMode(mode === "signup" ? "signin" : "signup");
+            setMessage("");
+          }}
+        >
+          {mode === "signup"
+            ? "Already have an account? Sign in"
+            : "Need an account? Register"}
+        </button>
+      </form>
+    </main>
+  );
+}
+
+function ReaderPage({ session }) {
   const fileInputRef = useRef(null);
   const [documentData, setDocumentData] = useState(null);
   const [uploadStatus, setUploadStatus] = useState("idle");
@@ -77,7 +221,11 @@ function ReaderPage() {
     }
 
     const pdfUrl = documentData.pdf_url || "/api/documents/current/pdf";
-    return `${API_BASE_URL}${pdfUrl}?v=${encodeURIComponent(
+    const absoluteUrl = pdfUrl.startsWith("http")
+      ? pdfUrl
+      : `${API_BASE_URL}${pdfUrl}`;
+    const separator = absoluteUrl.includes("?") ? "&" : "?";
+    return `${absoluteUrl}${separator}v=${encodeURIComponent(
       documentData.document_id,
     )}`;
   }, [documentData]);
@@ -87,7 +235,7 @@ function ReaderPage() {
 
     async function loadCurrentDocument() {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/documents/current`);
+        const response = await apiFetch(session, "/api/documents/current");
         if (response.status === 404) {
           return;
         }
@@ -117,7 +265,7 @@ function ReaderPage() {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [session]);
 
   async function handlePdfChange(event) {
     const file = event.target.files?.[0];
@@ -134,7 +282,7 @@ function ReaderPage() {
     formData.append("file", file);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
+      const response = await apiFetch(session, "/api/documents/upload", {
         method: "POST",
         body: formData,
       });
@@ -180,7 +328,7 @@ function ReaderPage() {
     setAssistantMode("qa");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/ai/ask`, {
+      const response = await apiFetch(session, "/api/ai/ask", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -215,7 +363,7 @@ function ReaderPage() {
     setAssistantMode("summary");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/ai/summary`, {
+      const response = await apiFetch(session, "/api/ai/summary", {
         method: "POST",
       });
       const payload = await response.json();
@@ -251,7 +399,7 @@ function ReaderPage() {
     setAssistantMode("sentence");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/ai/translate/sentence`, {
+      const response = await apiFetch(session, "/api/ai/translate/sentence", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -289,7 +437,7 @@ function ReaderPage() {
     setFullTranslationError("");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/ai/translate/full`, {
+      const response = await apiFetch(session, "/api/ai/translate/full", {
         method: "POST",
       });
       const payload = await response.json();
@@ -337,7 +485,7 @@ function ReaderPage() {
     setAssistantMode("word");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/ai/translate/word`, {
+      const response = await apiFetch(session, "/api/ai/translate/word", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -369,7 +517,7 @@ function ReaderPage() {
     setVocabularyMessage("");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/vocabulary`, {
+      const response = await apiFetch(session, "/api/vocabulary", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -646,7 +794,7 @@ function ReaderPage() {
   );
 }
 
-function VocabularyPage() {
+function VocabularyPage({ session }) {
   const [items, setItems] = useState([]);
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState("");
@@ -660,7 +808,7 @@ function VocabularyPage() {
 
     async function loadVocabulary() {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/vocabulary`);
+        const response = await apiFetch(session, "/api/vocabulary");
         const payload = await response.json();
 
         if (!response.ok) {
@@ -684,14 +832,14 @@ function VocabularyPage() {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [session]);
 
   async function handleDeleteVocabularyItem(itemId) {
     setDeletingId(itemId);
     setDeleteError("");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/vocabulary/${itemId}`, {
+      const response = await apiFetch(session, `/api/vocabulary/${itemId}`, {
         method: "DELETE",
       });
       const payload = await response.json();
@@ -715,7 +863,7 @@ function VocabularyPage() {
     setExportError("");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/vocabulary/export`);
+      const response = await apiFetch(session, "/api/vocabulary/export");
 
       if (!response.ok) {
         let message = "Vocabulary export failed.";

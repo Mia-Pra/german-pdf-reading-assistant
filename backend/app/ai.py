@@ -2,13 +2,14 @@
 import re
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
 from app.ai_client import AIClientError, AIResponseError, create_ai_client
 from app.api_errors import ai_error_to_http_exception
+from app.auth import AuthenticatedUser, get_authenticated_user
 from app.documents import load_current_document
-from app.storage import FULL_TRANSLATION_FILE, ensure_storage_directories
+from app.supabase_store import get_full_translation, save_full_translation
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
@@ -120,8 +121,8 @@ def _build_context(pages: list[dict[str, Any]], max_chars: int = 8000) -> str:
     return "\n\n".join(chunks)
 
 
-def _get_document_pages() -> list[dict[str, Any]]:
-    document = load_current_document()
+def _get_document_pages(user_id: str) -> list[dict[str, Any]]:
+    document = load_current_document(user_id)
     pages = document.get("pages")
     if not isinstance(pages, list) or not pages:
         raise HTTPException(
@@ -163,33 +164,6 @@ def _string_field(data: dict[str, Any], field: str) -> str:
 
 
 
-def _load_cached_full_translation(document_id: str) -> dict[str, Any] | None:
-    if not FULL_TRANSLATION_FILE.exists():
-        return None
-
-    try:
-        cached = json.loads(FULL_TRANSLATION_FILE.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return None
-
-    if not isinstance(cached, dict):
-        return None
-    if cached.get("document_id") != document_id:
-        return None
-    pages = cached.get("pages")
-    if not isinstance(pages, list) or not pages:
-        return None
-    return cached
-
-
-def _save_full_translation_cache(payload: FullTranslationResponse) -> None:
-    ensure_storage_directories()
-    FULL_TRANSLATION_FILE.write_text(
-        json.dumps(payload.model_dump(), ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-
-
 def _translate_page_text(page_number: int, source_text: str) -> str:
     text = source_text.strip()
     if not text:
@@ -216,7 +190,10 @@ def _translate_page_text(page_number: int, source_text: str) -> str:
 
 
 @router.post("/ask", response_model=AskResponse)
-def ask_document(request: AskRequest) -> AskResponse:
+def ask_document(
+    request: AskRequest,
+    user: AuthenticatedUser = Depends(get_authenticated_user),
+) -> AskResponse:
     question = request.question.strip()
     if not question:
         raise HTTPException(
@@ -224,7 +201,7 @@ def ask_document(request: AskRequest) -> AskResponse:
             detail="Question cannot be empty.",
         )
 
-    pages = _get_document_pages()
+    pages = _get_document_pages(user.id)
     relevant_pages = _select_relevant_pages(pages, question)
     if not relevant_pages:
         raise HTTPException(
@@ -262,8 +239,10 @@ def ask_document(request: AskRequest) -> AskResponse:
 
 
 @router.post("/summary", response_model=SummaryResponse)
-def summarize_document() -> SummaryResponse:
-    pages = _get_document_pages()
+def summarize_document(
+    user: AuthenticatedUser = Depends(get_authenticated_user),
+) -> SummaryResponse:
+    pages = _get_document_pages(user.id)
     readable_pages = [page for page in pages if str(page.get("text", "")).strip()]
     if not readable_pages:
         raise HTTPException(
@@ -301,8 +280,10 @@ def summarize_document() -> SummaryResponse:
 
 
 @router.post("/translate/full", response_model=FullTranslationResponse)
-def translate_full_document() -> FullTranslationResponse:
-    document = load_current_document()
+def translate_full_document(
+    user: AuthenticatedUser = Depends(get_authenticated_user),
+) -> FullTranslationResponse:
+    document = load_current_document(user.id)
     document_id = str(document.get("document_id", "")).strip()
     filename = str(document.get("filename", "")).strip() or "document.pdf"
     pages = document.get("pages")
@@ -318,7 +299,7 @@ def translate_full_document() -> FullTranslationResponse:
             detail="No parsed document text is available. Upload a PDF first.",
         )
 
-    cached = _load_cached_full_translation(document_id)
+    cached = get_full_translation(user.id, document_id)
     if cached is not None:
         return FullTranslationResponse.model_validate({**cached, "cached": True})
 
@@ -350,12 +331,15 @@ def translate_full_document() -> FullTranslationResponse:
         pages=translated_pages,
         cached=False,
     )
-    _save_full_translation_cache(response)
+    save_full_translation(user.id, document_id, response.model_dump())
     return response
 
 
 @router.post("/translate/sentence", response_model=SentenceTranslationResponse)
-def translate_sentence(request: SentenceTranslationRequest) -> SentenceTranslationResponse:
+def translate_sentence(
+    request: SentenceTranslationRequest,
+    user: AuthenticatedUser = Depends(get_authenticated_user),
+) -> SentenceTranslationResponse:
     sentence = request.sentence.strip()
     if not sentence:
         raise HTTPException(
@@ -386,7 +370,10 @@ def translate_sentence(request: SentenceTranslationRequest) -> SentenceTranslati
 
 
 @router.post("/translate/word", response_model=WordTranslationResponse)
-def translate_word(request: WordTranslationRequest) -> WordTranslationResponse:
+def translate_word(
+    request: WordTranslationRequest,
+    user: AuthenticatedUser = Depends(get_authenticated_user),
+) -> WordTranslationResponse:
     word = request.word.strip()
     if not word:
         raise HTTPException(

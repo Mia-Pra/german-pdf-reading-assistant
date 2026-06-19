@@ -173,3 +173,19 @@ Validation:
 - Frontend production build succeeds with a configured backend URL.
 - Backend health endpoint succeeds with configured CORS and storage paths.
 - Local defaults continue to support the existing development workflow.
+
+## Step 19: Add Supabase Authentication And Durable Multi-User Storage
+
+Add email/password authentication through Supabase. Require authenticated API
+requests, store each user's PDF in Supabase Storage, and store current document
+metadata, translation cache, and vocabulary in Supabase PostgreSQL tables with
+row-level security.
+
+Validation:
+
+- Frontend production build succeeds with Supabase configuration.
+- Missing backend Supabase configuration returns a clear service error.
+- Unauthenticated stateful API requests return 401.
+- Database migration defines per-user tables, constraints, and RLS policies.
+- PDF, document metadata, translation cache, and vocabulary operations are scoped
+  to the authenticated user.

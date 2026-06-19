@@ -170,5 +170,20 @@
   `https://german-pdf-reading-assistant-web.onrender.com`.
 - Added the production frontend to backend CORS and configured a Render SPA
   rewrite from `/*` to `/index.html`.
+- Implemented Step 19: Supabase authentication and durable multi-user storage.
+- Added frontend email/password registration, sign-in, persisted sessions, and sign-out.
+- Added authenticated API requests using the Supabase access token.
+- Added backend Supabase token verification and clear 401/503 error handling.
+- Migrated PDF persistence to a private Supabase Storage bucket with signed preview URLs.
+- Migrated current document metadata, full-translation cache, and vocabulary to
+  per-user PostgreSQL records accessed through the backend service role.
+- Added `backend/supabase/migration.sql` with tables, duplicate constraints,
+  private storage bucket creation, and row-level security policies.
+- Added Render and frontend environment variable templates for Supabase.
+- Validated backend syntax with `python -m compileall app`.
+- Validated the frontend production build with `npm.cmd run build`.
+- Validated missing configuration returns 503, missing or invalid auth returns
+  401, and two simulated authenticated users cannot list or delete each other's
+  vocabulary.
 - Validated the public homepage, direct `/vocabulary` route, vocabulary API,
   CORS response, and a live sentence translation of `Guten Tag` to `您好`.
