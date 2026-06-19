@@ -159,3 +159,16 @@
   disk after Render identified disks as a paid resource requiring payment details.
 - Production runtime data now uses `/tmp` and may be lost when the free service
   restarts or sleeps; this tradeoff is documented in the README and architecture.
+- Published the repository at `https://github.com/Mia-Pra/german-pdf-reading-assistant`.
+- Deployed the FastAPI backend on Render's free tier at
+  `https://german-pdf-reading-assistant.onrender.com`.
+- Stored the AI provider configuration in Render environment variables and
+  verified `/health` returns 200.
+- Vercel rejected account login pending additional account verification, so the
+  frontend was deployed as a free Render Static Site instead.
+- Deployed the React frontend at
+  `https://german-pdf-reading-assistant-web.onrender.com`.
+- Added the production frontend to backend CORS and configured a Render SPA
+  rewrite from `/*` to `/index.html`.
+- Validated the public homepage, direct `/vocabulary` route, vocabulary API,
+  CORS response, and a live sentence translation of `Guten Tag` to `您好`.

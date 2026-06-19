@@ -122,3 +122,9 @@ The Render Blueprint uses the free instance type and stores runtime data under
 `/tmp`. Uploaded PDFs, translation cache, and vocabulary data can be lost when
 the free service restarts or sleeps. This demo also has no user accounts, so all
 active visitors share the same stored document and vocabulary.
+
+Current deployment:
+
+- Web app: https://german-pdf-reading-assistant-web.onrender.com
+- Backend API: https://german-pdf-reading-assistant.onrender.com
+- Health check: https://german-pdf-reading-assistant.onrender.com/health

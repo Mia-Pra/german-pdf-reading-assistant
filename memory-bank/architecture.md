@@ -43,6 +43,14 @@ CORS origins, and backend storage directory are environment-configurable.
 `render.yaml` defines the free FastAPI service and ephemeral runtime storage, while
 `frontend/vercel.json` provides SPA route fallback for Vercel.
 
+The active production demo uses two Render services:
+
+- Static frontend: `https://german-pdf-reading-assistant-web.onrender.com`
+- FastAPI backend: `https://german-pdf-reading-assistant.onrender.com`
+
+Render has a `/*` to `/index.html` rewrite for React routes. The backend
+`CORS_ORIGINS` setting allows the production frontend origin.
+
 ## Planned Top-Level Structure
 
 - `frontend/`: React + Vite web app.
