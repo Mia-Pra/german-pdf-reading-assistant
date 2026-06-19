@@ -43,10 +43,14 @@ CORS origins, and backend storage directory are environment-configurable.
 `render.yaml` defines the free FastAPI service and ephemeral runtime storage, while
 `frontend/vercel.json` provides SPA route fallback for Vercel.
 
-Step 19 is implemented. Supabase email/password authentication gates the app.
+Step 19 is implemented. Supabase authentication gates the app.
 PDFs are stored in a private Supabase Storage bucket, while parsed current
 documents, translation caches, and vocabulary are stored per user in PostgreSQL.
 The SQL migration enables row-level security.
+
+Step 20 is implemented. The frontend automatically restores or creates a
+Supabase anonymous session and no longer displays registration, sign-in, or
+sign-out controls.
 
 The active production demo uses two Render services:
 
@@ -93,7 +97,7 @@ Implemented now:
 - PDF file input wired to `POST /api/documents/upload`.
 - Upload state handling for idle, uploading, ready, and error states.
 - PDF iframe preview using the backend `pdf_url` returned after upload.
-- Email/password registration, sign-in, persisted Supabase session, and sign-out.
+- Automatic anonymous sign-in and persisted browser session.
 - Bearer access token attached to every application API request.
 - Reader page automatically loads the current backend document on page open when one exists.
 - Reader toolbar can switch between original PDF preview and full-document translation comparison.

@@ -65,9 +65,8 @@ If you add or change backend endpoints while the server is already running, rest
 
 ## Demo Flow
 
-1. Create an account or sign in.
-2. Open the Reader page.
-3. Upload a text-based German PDF.
+1. Open the app. It automatically creates or restores an anonymous session.
+2. Upload a text-based German PDF.
 4. Use the assistant actions:
    - `Summary`: Chinese summary of the current PDF.
    - `Full Translation`: page-aligned original/Chinese comparison in the left reader pane.
@@ -107,14 +106,17 @@ Supabase stores:
 - One full-translation cache per account.
 - Vocabulary rows owned by each account.
 
-The migration enables row-level security. The FastAPI backend also derives every
-query from the verified Supabase user id, so users cannot read or modify another
-account's data.
+Enable **Anonymous Sign-Ins** in Supabase Authentication settings. The migration
+enables row-level security. The FastAPI backend derives every query from the
+verified anonymous user id, so browsers cannot read or modify another browser
+session's data.
 
 ## Limitations
 
 - No OCR. Scanned PDFs without extractable text return an OCR-not-supported error.
 - Supabase free-tier quotas apply.
+- Anonymous data is tied to browser storage. Clearing site data or changing
+  browsers creates a new user and makes the previous data inaccessible.
 - Parsed text does not preserve exact PDF layout. The original PDF iframe is used for visual reading.
 
 ## Production Deployment

@@ -13,7 +13,7 @@ The app focuses on a complete demo loop: upload PDF, preview original PDF, parse
 
 - No OCR for scanned PDFs.
 - No mind map feature.
-- No social-login providers; email/password authentication is used.
+- No login form or personally identifiable information; Supabase anonymous authentication is used.
 - No requirement to perfectly reproduce PDF layout in parsed text; the original PDF preview handles visual reading.
 
 ## Page Structure
@@ -193,8 +193,10 @@ Supabase persistence:
 - `full_translations`: cached translation per user and current document id.
 - `vocabulary`: saved vocabulary rows per user.
 
-Supabase Auth provides email/password accounts. PostgreSQL row-level security and
-backend user-id filtering prevent one account from accessing another account's data.
+Supabase Auth automatically creates an anonymous user per browser session.
+PostgreSQL row-level security and backend user-id filtering prevent one anonymous
+user from accessing another user's data. Clearing browser storage or changing
+devices creates a new identity and loses access to the previous identity's data.
 
 ## AI Configuration
 
@@ -212,7 +214,7 @@ The frontend never displays or submits API keys.
 - PDF has no extractable text: return OCR-not-supported message.
 - API config missing: backend returns setup error.
 - LLM failure: frontend shows error and keeps current document/vocabulary state.
-- Missing or expired login: backend returns 401 and the user signs in again.
+- Missing or expired session: the frontend creates a new anonymous session.
 - User enters empty word or sentence: validation error.
 - Duplicate vocabulary: backend returns existing item or duplicate warning.
 - Long PDF: backend chunks text before summary or full translation.

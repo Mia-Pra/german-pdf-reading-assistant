@@ -38,33 +38,6 @@ body {
   margin: 0;
 }
 
-.auth-card label {
-  display: grid;
-  gap: 7px;
-  font-weight: 700;
-}
-
-.auth-card input {
-  width: 100%;
-  padding: 11px 12px;
-  border: 1px solid #c8b98f;
-  border-radius: 9px;
-  font: inherit;
-}
-
-.auth-switch,
-.sign-out-button {
-  border: 0;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  font: inherit;
-}
-
-.auth-switch {
-  color: #6d5424;
-  text-decoration: underline;
-}
 
 button,
 textarea {
