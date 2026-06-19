@@ -16,11 +16,8 @@ from app.supabase_store import (
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
 
-def _safe_pdf_filename(filename: str) -> str:
-    source_name = Path(filename or "uploaded.pdf").name
-    if not source_name.lower().endswith(".pdf"):
-        source_name = f"{source_name}.pdf"
-    return f"{uuid4().hex}_{source_name}"
+def _safe_pdf_filename(_filename: str) -> str:
+    return f"{uuid4().hex}.pdf"
 
 
 def load_current_document(user_id: str) -> dict[str, object]:

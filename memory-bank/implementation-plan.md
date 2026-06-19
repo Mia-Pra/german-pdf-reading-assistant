@@ -203,3 +203,15 @@ Validation:
 - The email/password form and sign-out action are removed.
 - Frontend production build succeeds.
 - Existing backend token verification and per-user RLS remain unchanged.
+
+## Step 21: Make Supabase PDF Object Keys Filename-Safe
+
+Store uploaded PDFs under an ASCII-only generated object name instead of
+including the user-provided filename in the Supabase Storage key. Preserve the
+original filename in document metadata for display.
+
+Validation:
+
+- Chinese filenames, spaces, and punctuation do not appear in the Storage key.
+- The original uploaded filename remains available in document metadata.
+- PDF parsing, private upload, and signed preview URL generation continue to work.
