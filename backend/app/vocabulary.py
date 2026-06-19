@@ -1,3 +1,4 @@
+import json
 from io import BytesIO
 from uuid import uuid4
 
@@ -7,16 +8,11 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, Response, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from app.auth import AuthenticatedUser, get_authenticated_user
-from app.supabase_store import (
-    add_vocabulary,
-    delete_vocabulary,
-    list_vocabulary as list_stored_vocabulary,
-)
+from app.storage import VOCABULARY_FILE, ensure_storage_directories
 
 router = APIRouter(prefix="/api/vocabulary", tags=["vocabulary"])
 
@@ -51,6 +47,34 @@ class VocabularyAddResponse(BaseModel):
 class VocabularyDeleteResponse(BaseModel):
     deleted: bool
     id: str
+
+
+def _load_vocabulary() -> list[dict[str, object]]:
+    ensure_storage_directories()
+
+    try:
+        data = json.loads(VOCABULARY_FILE.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Vocabulary storage is corrupted.",
+        ) from exc
+
+    if not isinstance(data, list):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Vocabulary storage must contain a list.",
+        )
+
+    return data
+
+
+def _save_vocabulary(items: list[dict[str, object]]) -> None:
+    ensure_storage_directories()
+    VOCABULARY_FILE.write_text(
+        json.dumps(items, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
 
 def _required_text(value: str, field_name: str) -> str:
@@ -232,17 +256,13 @@ def _build_vocabulary_docx(items: list[dict[str, object]]) -> BytesIO:
 
 
 @router.get("", response_model=list[VocabularyItem])
-def list_vocabulary(
-    user: AuthenticatedUser = Depends(get_authenticated_user),
-) -> list[dict[str, object]]:
-    return list_stored_vocabulary(user.id)
+def list_vocabulary() -> list[dict[str, object]]:
+    return _load_vocabulary()
 
 
 @router.get("/export")
-def export_vocabulary(
-    user: AuthenticatedUser = Depends(get_authenticated_user),
-) -> StreamingResponse:
-    items = list_stored_vocabulary(user.id)
+def export_vocabulary() -> StreamingResponse:
+    items = _load_vocabulary()
     docx_buffer = _build_vocabulary_docx(items)
 
     return StreamingResponse(
@@ -258,7 +278,6 @@ def export_vocabulary(
 def add_vocabulary_item(
     request: VocabularyCreateRequest,
     response: Response,
-    user: AuthenticatedUser = Depends(get_authenticated_user),
 ) -> VocabularyAddResponse:
     lemma = _required_text(request.lemma, "Lemma")
     part_of_speech = _required_text(request.part_of_speech, "Part of speech")
@@ -266,7 +285,7 @@ def add_vocabulary_item(
     example_sentence = _required_text(request.example_sentence, "Example sentence")
     word = request.word.strip() or lemma
 
-    items = list_stored_vocabulary(user.id)
+    items = _load_vocabulary()
     incoming_key = (lemma.casefold(), part_of_speech.casefold())
 
     for item in items:
@@ -287,11 +306,12 @@ def add_vocabulary_item(
         example_sentence=example_sentence,
         source_page=request.source_page,
     )
-    saved_item = add_vocabulary(user.id, item.model_dump())
+    items.append(item.model_dump())
+    _save_vocabulary(items)
     response.status_code = status.HTTP_201_CREATED
 
     return VocabularyAddResponse(
-        item=VocabularyItem.model_validate(saved_item or item.model_dump()),
+        item=item,
         created=True,
         message="Vocabulary item saved.",
     )
@@ -300,11 +320,14 @@ def add_vocabulary_item(
 @router.delete("/{item_id}", response_model=VocabularyDeleteResponse)
 def delete_vocabulary_item(
     item_id: str,
-    user: AuthenticatedUser = Depends(get_authenticated_user),
 ) -> VocabularyDeleteResponse:
-    if not delete_vocabulary(user.id, item_id):
+    items = _load_vocabulary()
+    remaining = [item for item in items if str(item.get("id")) != item_id]
+
+    if len(remaining) == len(items):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Vocabulary item was not found.",
         )
+    _save_vocabulary(remaining)
     return VocabularyDeleteResponse(deleted=True, id=item_id)

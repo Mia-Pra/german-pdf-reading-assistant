@@ -13,7 +13,10 @@ The app focuses on a complete demo loop: upload PDF, preview original PDF, parse
 
 - No OCR for scanned PDFs.
 - No mind map feature.
-- No login form or personally identifiable information; Supabase anonymous authentication is used.
+- No user login.
+- No production database.
+- No cloud sync.
+- No multi-user permission model.
 - No requirement to perfectly reproduce PDF layout in parsed text; the original PDF preview handles visual reading.
 
 ## Page Structure
@@ -59,7 +62,6 @@ Acceptance:
 - The original PDF can be previewed.
 - Backend parsed text is available for AI features.
 - If the PDF has no extractable text, the app clearly says OCR is not supported.
-- The PDF belongs only to the authenticated user and remains available after backend restarts.
 
 ### Ask About The Document
 
@@ -123,7 +125,6 @@ User saves word translation results into the vocabulary notebook. Backend persis
 Acceptance:
 
 - Saved vocabulary survives page refresh and app navigation.
-- Saved vocabulary is isolated by authenticated Supabase user id.
 - Duplicate words are not added repeatedly.
 - Export button downloads a valid Word file.
 - Word file contains lemma, POS, plural, translation, and example sentence.
@@ -186,17 +187,15 @@ Only lemma, part of speech, plural, translation, and example sentence are requir
 
 ## Persistence
 
-Supabase persistence:
+Backend local files:
 
-- Private `pdfs` Storage bucket: uploaded PDFs under `{user_id}/`.
-- `current_documents`: current parsed document and PDF object path per user.
-- `full_translations`: cached translation per user and current document id.
-- `vocabulary`: saved vocabulary rows per user.
+- `storage/uploads/`: uploaded PDFs.
+- `storage/documents/current.json`: parsed current document.
+- `storage/translations/current_full_translation.json`: cached full translation.
+- `storage/vocabulary.json`: saved vocabulary.
 
-Supabase Auth automatically creates an anonymous user per browser session.
-PostgreSQL row-level security and backend user-id filtering prevent one anonymous
-user from accessing another user's data. Clearing browser storage or changing
-devices creates a new identity and loses access to the previous identity's data.
+This is intentionally simple for a demo and avoids database setup. All visitors
+to one deployed backend share the current PDF, translation cache, and vocabulary.
 
 ## AI Configuration
 
@@ -214,7 +213,6 @@ The frontend never displays or submits API keys.
 - PDF has no extractable text: return OCR-not-supported message.
 - API config missing: backend returns setup error.
 - LLM failure: frontend shows error and keeps current document/vocabulary state.
-- Missing or expired session: the frontend creates a new anonymous session.
 - User enters empty word or sentence: validation error.
 - Duplicate vocabulary: backend returns existing item or duplicate warning.
 - Long PDF: backend chunks text before summary or full translation.
@@ -230,6 +228,6 @@ The frontend never displays or submits API keys.
 - Sentence translation works through manual input and selected text input.
 - Word translation returns lemma, POS, plural, Chinese translation, and example sentence.
 - User can add word translation output to vocabulary.
-- Vocabulary persists in Supabase PostgreSQL and is isolated per account.
+- Vocabulary persists in backend local file storage.
 - Page 2 lists vocabulary and downloads a valid Word file.
 - Full-document translation is shown in original/translation comparison mode.

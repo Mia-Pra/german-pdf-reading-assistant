@@ -14,31 +14,6 @@ body {
   margin: 0;
 }
 
-.auth-shell {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: #f4f1e8;
-}
-
-.auth-card {
-  width: min(420px, 100%);
-  display: grid;
-  gap: 16px;
-  padding: 32px;
-  border: 1px solid #d8c9a5;
-  border-radius: 18px;
-  background: #fffdf7;
-  box-shadow: 0 18px 50px rgba(48, 39, 20, 0.12);
-}
-
-.auth-card h1,
-.auth-card p {
-  margin: 0;
-}
-
-
 button,
 textarea {
   font: inherit;
@@ -89,6 +64,29 @@ button:disabled {
   justify-content: space-between;
   gap: 24px;
   margin-bottom: 24px;
+}
+
+.workspace-main {
+  display: grid;
+}
+
+.route-layer {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.route-layer-active {
+  position: relative;
+  z-index: 1;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.route-layer-inactive {
+  z-index: 0;
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
 }
 
 .eyebrow {
